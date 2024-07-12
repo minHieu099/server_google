@@ -1,0 +1,7 @@
+newspaper3k
+scikit-learn
+lxml
+lxml_html_clean
+Flask
+SQLAlchemy
+Flask-SQLAlchemy

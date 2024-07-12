@@ -1,0 +1,24 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# CPython debug logs
+*.log
+
+# Windows specific
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Pycharm specific
+.idea/
+
+# Virtual environments
+myenv/
+venv/
+ENV/
+
+# Environment variables
+.env
+
