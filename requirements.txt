@@ -6,3 +6,4 @@ Flask
 SQLAlchemy
 Flask-SQLAlchemy
 flask-cors
+requests
