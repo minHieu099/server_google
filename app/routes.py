@@ -10,7 +10,7 @@ def get_search_info():
 
 @main.route('/search_details/<int:info_id>', methods=['GET'])
 def get_search_details(info_id):
-    details = SearchDetails.query.filter_by(search_info_id=info_id).all()
+    details = SearchDetails.query.filter_by(search_info_id=info_id).order_by(SearchDetails.confidence_level.desc()).all()
     return jsonify([{
         'id': detail.id,
         'link': detail.link,
