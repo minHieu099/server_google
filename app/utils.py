@@ -3,10 +3,24 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import requests
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
+import re
+
 def extract_keywords(data):
+  
     search_terms = data["queries"]["request"][0]["searchTerms"]
-    keywords = search_terms.replace("\"", "").split(", ")
+    
+
+    search_terms = re.sub(r'intitle:|intext:', '', search_terms).replace('"', '')
+    
+
+    keywords = re.split(r' AND | OR |\(|\)|, ', search_terms)
+    
+
+    keywords = [keyword.strip() for keyword in keywords if keyword.strip()]
+    
+
     modified_keywords = [keyword.replace(" ", "_") for keyword in keywords]
+    
     return modified_keywords
 def extract_urls(response):
     urls = []
@@ -29,27 +43,31 @@ def get_word_info(text):
     except requests.exceptions.RequestException as e:
         print(f"Request error: {e}")
         return None
-def extract_text_and_title_from_url(url):
-    user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0) Gecko/20100101 Firefox/78.0'
-
+def extract_text_and_title_from_url(url, retries=2):
     config = Config()
-    config.browser_user_agent = user_agent
-    config.request_timeout = 10
+    config.browser_user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0) Gecko/20100101 Firefox/78.0'
+    config.request_timeout = 15 
 
     page = Article(url, config=config)
     text = ""
     title = ""
-    try:
-        page.download()
-        page.parse()
-        text = page.text
-        # title = page.title
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    attempts = 0
+    while attempts < retries:
+        try:
+            page.download()
+            page.parse()
+            text = page.text
+            title = page.title
+            break
+        except Exception as e:
+            attempts += 1
+            if attempts >= retries:
+                print(f"An error occurred after {retries} attempts: {e}")
+    combined_text = title + "\n" + text
+    return combined_text
 
-    return text
 def extract_top_keywords(data):
-    # Đọc danh sách stopwords từ file 'stopwords.txt'
+ 
     with open('stopwords.txt', 'r', encoding='utf-8') as f:
         stopwords = f.read().split()
 
@@ -67,6 +85,7 @@ def extract_top_keywords(data):
     result = []
 
     for word, score in sorted_tfidf:
+        print(word)
         try:
             loai_tu = next(item["loại từ"] for item in data if item["từ"] == word)
             result.append({"từ khóa": word, "loại từ": loai_tu, "điểm số": float(round(score, 2))})  

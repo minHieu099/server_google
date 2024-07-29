@@ -1,9 +1,9 @@
-newspaper3k
+newspaper4k
 scikit-learn
 lxml
 lxml_html_clean
 Flask
 SQLAlchemy
 Flask-SQLAlchemy
-flask-cors
+Flask-Cors
 requests

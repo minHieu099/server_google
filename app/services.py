@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request  # Import request từ Flask
+from flask import Blueprint, jsonify, request 
 import requests
 from .models import db, SearchInfo, SearchDetails
 import json
@@ -38,21 +38,23 @@ def search():
                 'content': '',  
                 'snippet': item.get('snippet', ''),
                 'labeled_pos': [], 
-                'extract_content': [],  
+                'extract_content': [],
+                'original_keywords':[],  
                 'cosine_degree': 0.0  
             }
             array_of_elements.append(element)
         process_data(array_of_elements, response_data)
-
+ 
         filtered_elements = []
         for element in array_of_elements:
             filtered_element = {
                 'stt': element['stt'],
                 'url': element['url'],
                 'title': element['title'],
-                'content': element['content'],
+                # 'content': element['content'],
                 'snippet': element['snippet'],
                 'extract_content': element['extract_content'],
+                'original_keywords':extract_keywords(response_data),
                 'cosine_degree': element['cosine_degree']
             }
             filtered_elements.append(filtered_element)
@@ -72,12 +74,17 @@ def process_data(array_of_elements,response):
    
             element['content'] = content
             content_info = get_word_info(content)
+      
             if content_info:
                 element['labeled_pos'] = content_info
                 top_keywords = extract_top_keywords(content_info)
+                print(top_keywords)
+                
                 if top_keywords:
+
                     element['extract_content'] = top_keywords
                     calculate_cosine_similarity([element], original_keywords=extract_keywords(response))
+                    print("Kết quả: ",calculate_cosine_similarity)
     return array_of_elements
 
 @service.route('/add_search_data', methods=['POST'])
