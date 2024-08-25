@@ -2,14 +2,63 @@ from flask import Blueprint, jsonify, request
 import requests
 from .models import db, SearchInfo, SearchDetails
 import json
+import numpy as np
+import os
 from .utils import (
     extract_keywords,
     extract_urls,
     get_word_info,
     extract_text_and_title_from_url,
     extract_top_keywords,
-    calculate_cosine_similarity
+    calculate_cosine_similarity,
+    extract_text_from_url
 )
+import nltk
+from gensim.models import KeyedVectors
+from sklearn.cluster import KMeans
+from sklearn.metrics import pairwise_distances_argmin_min
+from pyvi import ViTokenizer
+
+
+
+def preprocess_contents(contents):
+    return [content.lower().strip() for content in contents]
+
+
+def sentences_to_vectors(sentences, model):
+    X = []
+    for sentence in sentences:
+        sentence = ViTokenizer.tokenize(sentence)
+        words = sentence.split(" ")
+        sentence_vec = np.zeros((100))
+        for word in words:
+            if word in model:
+                sentence_vec += model[word]
+        X.append(sentence_vec)
+    return X
+
+def cluster_sentences(X, n_clusters=3):
+    kmeans = KMeans(n_clusters=n_clusters, n_init=10)
+    kmeans = kmeans.fit(X)
+    return kmeans
+
+
+def generate_summary(sentences, kmeans, X):
+    avg = []
+    for j in range(kmeans.n_clusters):
+        idx = np.where(kmeans.labels_ == j)[0]
+        avg.append(np.mean(idx))
+    closest, _ = pairwise_distances_argmin_min(kmeans.cluster_centers_, X)
+    ordering = sorted(range(kmeans.n_clusters), key=lambda k: avg[k])
+    summary = ' '.join([sentences[closest[idx]] for idx in ordering])
+    return summary
+
+def load_word2vec_model():
+   
+    model_path = os.path.join(os.path.dirname(__file__), 'vi_txt', 'vi.vec')
+    model = KeyedVectors.load_word2vec_format(model_path)
+    return model
+w2v =load_word2vec_model()
 service = Blueprint('service', __name__)
 
 @service.route('/search', methods=['GET'])
@@ -117,3 +166,27 @@ def add_search_data():
     except Exception as e:
         db.session.rollback()  
         return jsonify({"error": str(e)}), 400
+@service.route('/extract_content', methods=['POST'])
+def extract_content():
+    if not request.json or 'url' not in request.json:
+        return jsonify({"error": "No URL provided"}), 400
+
+    url = request.json['url']
+    try:
+        content = extract_text_from_url(url)
+        return jsonify({"url": url, "content": content}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+@service.route('/summarize', methods=['POST'])
+def summarize():
+    data = request.get_json()
+    contents = [data['contents']]
+    contents_parsed = preprocess_contents(contents)
+    
+    sentences = nltk.sent_tokenize(contents_parsed[0])
+    X = sentences_to_vectors(sentences, w2v)
+    print(X)
+    kmeans = cluster_sentences(X)
+    summary = generate_summary(sentences, kmeans, X)
+    
+    return jsonify({'summary':summary})

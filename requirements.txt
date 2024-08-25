@@ -7,3 +7,5 @@ SQLAlchemy
 Flask-SQLAlchemy
 Flask-Cors
 requests
+pyvi
+gensim

@@ -65,6 +65,29 @@ def extract_text_and_title_from_url(url, retries=2):
                 print(f"An error occurred after {retries} attempts: {e}")
     combined_text = title + "\n" + text
     return combined_text
+def extract_text_from_url(url, retries=2):
+    config = Config()
+    config.browser_user_agent = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:78.0) Gecko/20100101 Firefox/78.0'
+    config.request_timeout = 15 
+
+    page = Article(url, config=config)
+    text = ""
+
+    attempts = 0
+    while attempts < retries:
+        try:
+            page.download()
+            page.parse()
+            text = page.text
+
+            break
+        except Exception as e:
+            attempts += 1
+            if attempts >= retries:
+                print(f"An error occurred after {retries} attempts: {e}")
+    combined_text =  text
+    return combined_text
+
 
 def extract_top_keywords(data):
  
